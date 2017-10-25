@@ -6,6 +6,7 @@
 #include <semaphore.h>
 
 pthread_mutex_t lock;
+int active;
 
 typedef struct
 {
@@ -60,6 +61,7 @@ addMoney *createAdder(bankAccount *target, int numberOfMoney)
 void *addToAccount(void *arg)
 {
 	pthread_mutex_lock(&lock);
+	//active = true;
 
 	addMoney *money = (addMoney *)arg;
 	bankAccount *target = money->target;
@@ -71,6 +73,7 @@ void *addToAccount(void *arg)
         usleep(rand() % 1000);
 	target->money = cache + money->numberOfMoney;
 	printf("Dodaje %d pln do konta nr:  %d \nStan konta: %d \n\n", money->numberOfMoney, target->id, target->money);
+	//printf("aktywny: ", active);
         sem_post(&(target->sem));
     }
 
@@ -111,12 +114,6 @@ void *transferMoney(void *arg)
     }
 
 		pthread_mutex_unlock(&lock);
-
-}
-
-void lock(){
-
-
 
 }
 
