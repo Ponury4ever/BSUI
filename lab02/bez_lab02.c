@@ -70,12 +70,12 @@ void* addToAccount(void* arg)
     for (int i = 0; i < 6; i++)
     {
 
-         if (pthread_mutex_init(&mutex, NULL) != 0)
-    	{
-       		printf("\n mutex init failed\n");
-        	return 0;
-    	}
-        do
+        if (pthread_mutex_init(&mutex, NULL) != 0)
+        {
+            printf("\n mutex init failed\n");
+            return 0;
+        }
+        while (true)
         {
             if (target->isFree)
             {
@@ -87,7 +87,7 @@ void* addToAccount(void* arg)
             {
                 pthread_cond_wait(&(target->cond), &mutex);
             }
-        } while (true);
+        }
 
         int cache = target->money;
         usleep(rand() % 1000);
@@ -96,35 +96,89 @@ void* addToAccount(void* arg)
             target->id, target->money);
 
 
-	pthread_mutex_lock(&mutex);
-    	target->isFree = true;
-    	pthread_cond_signal(&(target->cond));
-    	pthread_mutex_unlock(&mutex);
+        pthread_mutex_lock(&mutex);
+        target->isFree = true;
+        pthread_cond_signal(&(target->cond));
+        pthread_mutex_unlock(&mutex);
     }
-
-   
 }
 
 void* transferMoney(void* arg)
 {
-
-    /*pthread_mutex_lock(&lock);
-
     moneyTransfer* transfer = (moneyTransfer*)arg;
     bankAccount* src = transfer->src;
     bankAccount* target = transfer->target;
 
     for (int i = 0; i < 6; i++)
     {
+
+        if (pthread_mutex_init(&mutex, NULL) != 0)
+        {
+            printf("\n mutex init failed\n");
+            return 0;
+        }
+
         if (src->id < target->id)
         {
-            sem_wait(&(src->sem));
-            sem_wait(&(target->sem));
+
+            while (true)
+            {
+                if (src->isFree)
+                {
+                    src->isFree = false;
+                    pthread_mutex_unlock(&mutex);
+                    break;
+                }
+                else
+                {
+                    pthread_cond_wait(&(src->cond), &mutex);
+                }
+            }
+
+
+            while (true)
+            {
+                if (target->isFree)
+                {
+                    target->isFree = false;
+                    pthread_mutex_unlock(&mutex);
+                    break;
+                }
+                else
+                {
+                    pthread_cond_wait(&(target->cond), &mutex);
+                }
+            }
         }
         else
         {
-            sem_wait(&(target->sem));
-            sem_wait(&(src->sem));
+            while (true)
+            {
+                if (src->isFree)
+                {
+                    src->isFree = false;
+                    pthread_mutex_unlock(&mutex);
+                    break;
+                }
+                else
+                {
+                    pthread_cond_wait(&(src->cond), &mutex);
+                }
+            }
+
+            while (true)
+            {
+                if (target->isFree)
+                {
+                    target->isFree = false;
+                    pthread_mutex_unlock(&mutex);
+                    break;
+                }
+                else
+                {
+                    pthread_cond_wait(&(target->cond), &mutex);
+                }
+            }
         }
         int srcCache = src->money;
         int targetCache = target->money;
@@ -138,8 +192,7 @@ void* transferMoney(void* arg)
         sem_post(&(src->sem));
     }
 
-    pthread_mutex_unlock(&lock);*/
-
+    pthread_mutex_unlock(&lock);
 }
 
 int main()
@@ -153,8 +206,8 @@ int main()
 
     pthread_t addFirstAccountThread[threadNumber];
     pthread_t addSecondAccountThread[threadNumber];
-    //pthread_t transferFirstThread[threadNumber];
-    //pthread_t transferSecondThread[threadNumber];
+    // pthread_t transferFirstThread[threadNumber];
+    // pthread_t transferSecondThread[threadNumber];
 
     int returnThread;
 
@@ -164,8 +217,8 @@ int main()
     addMoney* addToFirst = createAdder(firstAccount, 100);
     addMoney* addToSecond = createAdder(secondAccount, 100);
 
-    //moneyTransfer* fromFirstTransfer = createTransfer(firstAccount, secondAccount, 50);
-    //moneyTransfer* fromSecondTransfer = createTransfer(secondAccount, firstAccount, 150);
+    // moneyTransfer* fromFirstTransfer = createTransfer(firstAccount, secondAccount, 50);
+    // moneyTransfer* fromSecondTransfer = createTransfer(secondAccount, firstAccount, 150);
 
     for (int i = 0; i < threadNumber; i++)
     {
@@ -175,10 +228,11 @@ int main()
         pthread_create(&(addSecondAccountThread[i]), NULL, addToAccount, (void*)addToSecond);
 
 
-        //pthread_create(&(transferFirstThread[i]), NULL, transferMoney, (void*)fromFirstTransfer);
+        // pthread_create(&(transferFirstThread[i]), NULL, transferMoney, (void*)fromFirstTransfer);
 
 
-        //pthread_create(&(transferSecondThread[i]), NULL, transferMoney, (void*)fromSecondTransfer);
+        // pthread_create(&(transferSecondThread[i]), NULL, transferMoney,
+        // (void*)fromSecondTransfer);
     }
 
     for (int i = 0; i < threadNumber; i++)
@@ -187,9 +241,9 @@ int main()
 
         pthread_join(addSecondAccountThread[i], NULL);
 
-        //pthread_join(transferFirstThread[i], NULL);
+        // pthread_join(transferFirstThread[i], NULL);
 
-        //pthread_join(transferSecondThread[i], NULL);
+        // pthread_join(transferSecondThread[i], NULL);
     }
 
 
