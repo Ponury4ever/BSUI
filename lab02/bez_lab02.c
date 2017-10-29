@@ -188,11 +188,19 @@ void* transferMoney(void* arg)
         printf("\n przelew: %d \n", transfer->numberOfMoney);
         printf("Z konta nr:  %d  --> stan konta: %d \n", src->id, src->money);
         printf("Do konta nr:  %d --> stan konta: %d \n", target->id, target->money);
-        sem_post(&(target->sem));
-        sem_post(&(src->sem));
-    }
 
-    pthread_mutex_unlock(&lock);
+
+	pthread_mutex_lock(&mutex);
+        src->isFree = true;
+        pthread_cond_signal(&(src->cond));
+        pthread_mutex_unlock(&mutex);	
+   	
+	pthread_mutex_lock(&mutex);
+        target->isFree = true;
+        pthread_cond_signal(&(target->cond));
+        pthread_mutex_unlock(&mutex);
+        
+    }
 }
 
 int main()
@@ -206,8 +214,8 @@ int main()
 
     pthread_t addFirstAccountThread[threadNumber];
     pthread_t addSecondAccountThread[threadNumber];
-    // pthread_t transferFirstThread[threadNumber];
-    // pthread_t transferSecondThread[threadNumber];
+    pthread_t transferFirstThread[threadNumber];
+    pthread_t transferSecondThread[threadNumber];
 
     int returnThread;
 
@@ -217,8 +225,8 @@ int main()
     addMoney* addToFirst = createAdder(firstAccount, 100);
     addMoney* addToSecond = createAdder(secondAccount, 100);
 
-    // moneyTransfer* fromFirstTransfer = createTransfer(firstAccount, secondAccount, 50);
-    // moneyTransfer* fromSecondTransfer = createTransfer(secondAccount, firstAccount, 150);
+    moneyTransfer* fromFirstTransfer = createTransfer(firstAccount, secondAccount, 50);
+    moneyTransfer* fromSecondTransfer = createTransfer(secondAccount, firstAccount, 150);
 
     for (int i = 0; i < threadNumber; i++)
     {
@@ -228,11 +236,10 @@ int main()
         pthread_create(&(addSecondAccountThread[i]), NULL, addToAccount, (void*)addToSecond);
 
 
-        // pthread_create(&(transferFirstThread[i]), NULL, transferMoney, (void*)fromFirstTransfer);
+        pthread_create(&(transferFirstThread[i]), NULL, transferMoney, (void*)fromFirstTransfer);
 
 
-        // pthread_create(&(transferSecondThread[i]), NULL, transferMoney,
-        // (void*)fromSecondTransfer);
+        pthread_create(&(transferSecondThread[i]), NULL, transferMoney, (void*)fromSecondTransfer);
     }
 
     for (int i = 0; i < threadNumber; i++)
@@ -241,9 +248,9 @@ int main()
 
         pthread_join(addSecondAccountThread[i], NULL);
 
-        // pthread_join(transferFirstThread[i], NULL);
+        pthread_join(transferFirstThread[i], NULL);
 
-        // pthread_join(transferSecondThread[i], NULL);
+        pthread_join(transferSecondThread[i], NULL);
     }
 
 
