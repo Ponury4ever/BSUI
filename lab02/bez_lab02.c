@@ -94,8 +94,8 @@ void* addToAccount(void* arg)
 
         pthread_mutex_lock(&mutex);
         target->isFree = true;
-	pthread_cond_signal(&(transferCond));
         pthread_cond_signal(&(target->cond));
+	pthread_cond_signal(&(transferCond));
         pthread_mutex_unlock(&mutex);
     }
 }
@@ -111,10 +111,7 @@ void* transferMoney(void* arg)
         pthread_mutex_lock(&mutex);
         while (true)
         {
-
-		printf("wartos i %d \n",i);
-
-            if (target->isFree)
+            if (target->isFree && src->isFree)
             {
                 target->isFree = false;
                 src->isFree = false;
@@ -123,8 +120,6 @@ void* transferMoney(void* arg)
             }
             else
             {
-                //pthread_cond_wait(&(target->cond), &mutex);
-                //pthread_cond_wait(&(src->cond), &mutex);
                 pthread_cond_wait(&(transferCond), &mutex);
             }
         }
@@ -142,10 +137,9 @@ void* transferMoney(void* arg)
         pthread_mutex_lock(&mutex);
         src->isFree = true;
         target->isFree = true;
-	
+	pthread_cond_signal(&(transferCond));
         pthread_cond_signal(&(src->cond));
         pthread_cond_signal(&(target->cond));
-	pthread_cond_signal(&(transferCond));
         pthread_mutex_unlock(&mutex);
     }
 }
@@ -156,9 +150,6 @@ int main()
     time_t t;
     i = time(&t);
     srand(i);
-
-	pthread_cond_init(&(transferCond), NULL);
-
 
 	if (pthread_mutex_init(&mutex, NULL) != 0)
    	 {
